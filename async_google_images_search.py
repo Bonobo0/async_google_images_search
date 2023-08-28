@@ -45,7 +45,9 @@ async def async_imageSearch(query, safe=False, validation=False, download=False,
                                        google_images_Data_removethumbnails)
     finalResults = []
     for i in google_images_fullRes:
-        finalResults.append(bytes(bytes(i, 'ascii').decode(
+        imageURI = i.replace("\u005c\u005c", "\u002f")
+        # Above line is for removing reverse solidus from the full resolution image URI
+        finalResults.append(bytes(bytes(imageURI, 'ascii').decode(
             'unicode-escape'), 'ascii').decode('unicode-escape'))
     try:
         if validation == True and download == True:
@@ -135,7 +137,8 @@ def main(query, safe, validation, download, timeout):
         print("\n\n[!] 프로그램이 종료되었습니다.\n\n[!] Program closed.\n\n")
         time.sleep(3)
         exit()
-    except ValueError:
+    except ValueError as e:
+        print(e)
         print("\n\n[!] 잘못된 값을 입력하셨습니다.\n\n[!] You entered an invalid value.\n\n")
         time.sleep(3)
         exit()
