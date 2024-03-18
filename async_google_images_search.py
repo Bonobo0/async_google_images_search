@@ -29,7 +29,7 @@ async def async_imageSearch(query, safe=False, validation=False, download=False,
     tm = time.time()
     headers = {
         "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0s Safari/537.36"
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
     }
     googleSearchUrl = f"https://www.google.com.au/search?q={query}&gl=AU&tbm=isch&espv=2&site=webhp&source=lnms&sa=X&ei=XosDVaCXD8TasATItgE&ved=0CAcQ_AUoAg"
     if safe == True:
