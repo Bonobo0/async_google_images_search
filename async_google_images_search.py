@@ -21,6 +21,10 @@ except ImportError:
 async def async_imageSearch(query, safe=False, validation=False, download=False, timeout=10, *args, **kwargs):
     session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(
         limit=0), timeout=aiohttp.ClientTimeout(total=timeout))
+    if safe == "1":
+        safe = True
+    if safe == "0":
+        safe = False
     query = re.sub(r'[\\/:?<>|]', '', query)
     tm = time.time()
     headers = {
@@ -36,6 +40,8 @@ async def async_imageSearch(query, safe=False, validation=False, download=False,
     scripts = htmlData.select('script')
     images = re.findall(
         r"AF_initDataCallback\(([^<]+)\);", str(scripts))
+    if len(images) == 0:
+        return await async_imageSearch(query, safe, validation, download, timeout)
     imagesData = images[1]
     imagesData_fix = json.dumps(imagesData, indent=2)
     imagesData_fix_json = json.loads(imagesData_fix)
@@ -45,17 +51,15 @@ async def async_imageSearch(query, safe=False, validation=False, download=False,
                                        google_images_Data_removethumbnails)
     finalResults = []
     for i in google_images_fullRes:
-        imageURI = i.replace("\u005c\u005c", "\u002f")
-        # Above line is for removing reverse solidus from the full resolution image URI
-        finalResults.append(bytes(bytes(imageURI, 'ascii').decode(
+        finalResults.append(bytes(bytes(i, 'ascii').decode(
             'unicode-escape'), 'ascii').decode('unicode-escape'))
     try:
         if validation == True and download == True:
             validation = False
         if validation == True:
             for i in finalResults:
-                async with session.head(i, ssl=False) as response:
-                    if str(response.status) != "200" or response.content_type.find("image") == -1:
+                async with session.get(i, ssl=False) as response:
+                    if str(response.status) != "200":
                         finalResults.remove(i)
         if download == True:
             counter = 0
@@ -137,8 +141,7 @@ def main(query, safe, validation, download, timeout):
         print("\n\n[!] 프로그램이 종료되었습니다.\n\n[!] Program closed.\n\n")
         time.sleep(3)
         exit()
-    except ValueError as e:
-        print(e)
+    except ValueError:
         print("\n\n[!] 잘못된 값을 입력하셨습니다.\n\n[!] You entered an invalid value.\n\n")
         time.sleep(3)
         exit()
