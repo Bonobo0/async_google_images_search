@@ -25,7 +25,7 @@ async def async_imageSearch(query, safe=False, validation=False, download=False,
     tm = time.time()
     headers = {
         "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0s Safari/537.36"
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
     }
     googleSearchUrl = f"https://www.google.com.au/search?q={query}&gl=AU&tbm=isch&espv=2&site=webhp&source=lnms&sa=X&ei=XosDVaCXD8TasATItgE&ved=0CAcQ_AUoAg"
     if safe == True:
@@ -36,13 +36,15 @@ async def async_imageSearch(query, safe=False, validation=False, download=False,
     scripts = htmlData.select('script')
     images = re.findall(
         r"AF_initDataCallback\(([^<]+)\);", str(scripts))
+    if len(images) == 0:
+        return await async_imageSearch(query, safe, validation, download, timeout)
     imagesData = images[1]
     imagesData_fix = json.dumps(imagesData, indent=2)
     imagesData_fix_json = json.loads(imagesData_fix)
-    google_images_Data_removethumbnails = re.sub(
+    google_images_data_remove_thumbnails = re.sub(
         r'\[\"(https\:\/\/encrypted-tbn0\.gstatic\.com\/images\?.*?)\",\d+,\d+\]', '', str(imagesData_fix_json))
     google_images_fullRes = re.findall(r"(?:'|,),\[\"(https:|http.*?)\",\d+,\d+\]",
-                                       google_images_Data_removethumbnails)
+                                       google_images_data_remove_thumbnails)
     finalResults = []
     for i in google_images_fullRes:
         imageURI = i.replace("\u005c\u005c", "\u002f")
@@ -55,35 +57,29 @@ async def async_imageSearch(query, safe=False, validation=False, download=False,
         if validation == True:
             for i in finalResults:
                 async with session.head(i, ssl=False) as response:
-                    if str(response.status) != "200" or response.content_type.find("image") == -1:
+                    if str(response.status) != "200" or response.content_type.split("/")[0] != "image":
                         finalResults.remove(i)
         if download == True:
-            counter = 0
             bar = progressbar.ProgressBar(widgets=[' [', progressbar.Timer(), '] ', progressbar.Bar(
             ), ' (', progressbar.ETA(), ') ', ], maxval=len(finalResults)).start()
-            for i in finalResults:
+            for i, j in enumerate(finalResults):
                 try:
-                    async with session.get(i, ssl=False) as response:
+                    async with session.get(j, ssl=False) as response:
                         if str(response.status) == "200":
                             os.makedirs(f"./download", exist_ok=True)
                             os.makedirs(f"./download/{query}", exist_ok=True)
-                            async with aiofiles.open(f"./download/{query}/{query}_{counter}.gif", 'wb') as f:
+                            async with aiofiles.open(f"./download/{query}/{query}_{i}.gif", 'wb') as f:
                                 await f.write(await response.read())
-                                counter += 1
-                                bar.update(counter)
-
+                                bar.update(i)
                 except aiohttp.ClientResponseError as e:
                     print(f"ClientResponseError\n\n{e}")
-                    counter += 1
-                    finalResults.remove(i)
+                    finalResults.remove(j)
                 except asyncio.TimeoutError as e:
                     print(f"Timeout\n\n{e}")
-                    counter += 1
-                    finalResults.remove(i)
+                    finalResults.remove(j)
                 except Exception as e:
                     print(f"Exception\n\n{e}")
-                    counter += 1
-                    finalResults.remove(i)
+                    finalResults.remove(j)
             bar.finish()
             print(f"\n\n{len(finalResults)} images downloaded")
         await session.close()
