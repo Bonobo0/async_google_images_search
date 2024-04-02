@@ -34,20 +34,17 @@ async def async_imageSearch(query, safe=False, validation=False, download=False,
         html = await response.text()
     htmlData = bs(html, 'lxml')
     scripts = htmlData.select('script')
-    images = re.findall(
-        r"AF_initDataCallback\(([^<]+)\);", str(scripts))
-    if len(images) == 0:
-        return await async_imageSearch(query, safe, validation, download, timeout)
-    imagesData = images[1]
-    imagesData_fix = json.dumps(imagesData, indent=2)
-    imagesData_fix_json = json.loads(imagesData_fix)
+    images = str(str(scripts).split("1,[0,")[1:])
+    # if len(images) == 0:
+    #     return await async_imageSearch(query, safe, validation, download, timeout)
     google_images_data_remove_thumbnails = re.sub(
-        r'\[\"(https\:\/\/encrypted-tbn0\.gstatic\.com\/images\?.*?)\",\d+,\d+\]', '', str(imagesData_fix_json))
-    google_images_fullRes = re.findall(r"(?:'|,),\[\"(https:|http.*?)\",\d+,\d+\]",
+        r'\[\"(https\:\/\/encrypted-tbn0\.gstatic\.com\/images\?.*?)\",\d+,\d+\]', '', images)
+    google_images_fullRes = re.findall(r"\[\"(https:|http.*?)\",\d+,\d+\]",
                                        google_images_data_remove_thumbnails)
     finalResults = []
     for i in google_images_fullRes:
         imageURI = i.replace("\u005c\u005c", "\u002f")
+        imageURI = imageURI.split("\"")[0]
         # Above line is for removing reverse solidus from the full resolution image URI
         finalResults.append(bytes(bytes(imageURI, 'ascii').decode(
             'unicode-escape'), 'ascii').decode('unicode-escape'))
@@ -55,17 +52,36 @@ async def async_imageSearch(query, safe=False, validation=False, download=False,
         if validation == True and download == True:
             validation = False
         if validation == True:
-            for i in finalResults:
-                async with session.head(i, ssl=False) as response:
-                    if str(response.status) != "200" or response.content_type.split("/")[0] != "image":
-                        finalResults.remove(i)
+            bar = progressbar.ProgressBar(widgets=[' [', progressbar.Timer(), '] ', progressbar.Bar(
+            ), ' (', progressbar.ETA(), ') ', ], maxval=len(finalResults)).start()
+            for i, j in enumerate(finalResults):
+                try:
+                    async with session.head(j, ssl=False) as response:
+                        if str(response.status) != "200" or response.content_type.split("/")[0] != "image":
+                            finalResults.remove(j)
+                            bar.update(i)
+                except aiohttp.ClientResponseError as e:
+                    print(f"ClientResponseError\n\n{e}")
+                    finalResults.remove(j)
+                    bar.update(i)
+                except asyncio.TimeoutError as e:
+                    print(f"Timeout\n\n{e}")
+                    finalResults.remove(j)
+                    bar.update(i)
+                except Exception as e:
+                    print(f"Exception\n\n{e}")
+                    finalResults.remove(j)
+                    bar.update(i)
         if download == True:
             bar = progressbar.ProgressBar(widgets=[' [', progressbar.Timer(), '] ', progressbar.Bar(
             ), ' (', progressbar.ETA(), ') ', ], maxval=len(finalResults)).start()
             for i, j in enumerate(finalResults):
                 try:
                     async with session.get(j, ssl=False) as response:
-                        if str(response.status) == "200":
+                        if str(response.status) != "200" or response.content_type.split("/")[0] != "image":
+                            finalResults.remove(j)
+                            bar.update(i)
+                        elif str(response.status) == "200":
                             os.makedirs(f"./download", exist_ok=True)
                             os.makedirs(f"./download/{query}", exist_ok=True)
                             async with aiofiles.open(f"./download/{query}/{query}_{i}.gif", 'wb') as f:
