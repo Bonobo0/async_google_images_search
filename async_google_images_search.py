@@ -46,8 +46,7 @@ async def async_imageSearch(query, safe=False, validation=False, download=False,
         imageURI = i.replace("\u005c\u005c", "\u002f")
         imageURI = imageURI.split("\"")[0]
         # Above line is for removing reverse solidus from the full resolution image URI
-        finalResults.append(bytes(bytes(imageURI, 'ascii').decode(
-            'unicode-escape'), 'ascii').decode('unicode-escape'))
+        finalResults.append(imageURI)
     try:
         if validation == True and download == True:
             validation = False
@@ -134,30 +133,30 @@ def main(query, safe, validation, download, timeout):
             print("\n\n[!] 검색어를 입력해주세요.\n\n프로그램이 30초 후에 자동으로 닫힙니다.\n\n[!] Please enter a query\n\nProgram closes automatically after 30 seconds\n\n")
             time.sleep(30)
             exit()
-    try:
-        print(asyncio.get_event_loop().run_until_complete(async_imageSearch(
-            query, bool(safe), bool(validation), bool(download), float(timeout))))
-        if download == False:
-            time.sleep(9999)
-        else:
-            print(
-                f"[!] 이미지 다운로드가 ./download/{query} 폴더에 완료되었습니다.\n\n[!] Images downloaded to ./download/{query}\n\n")
-            print(
-                "[!] 프로그램이 30초 후에 자동으로 닫힙니다.\n\n[!] Program closes automatically after 30 seconds\n\n")
-            time.sleep(30)
-    except KeyboardInterrupt:
-        print("\n\n[!] 프로그램이 종료되었습니다.\n\n[!] Program closed.\n\n")
-        time.sleep(3)
-        exit()
-    except ValueError as e:
-        print(e)
-        print("\n\n[!] 잘못된 값을 입력하셨습니다.\n\n[!] You entered an invalid value.\n\n")
-        time.sleep(3)
-        exit()
-    except Exception as e:
-        print(f"\n\n[!] 오류가 발생했습니다.\n\n[!] An error occurred.\n\n{e}\n\n")
-        time.sleep(3)
-        exit()
+    # try:
+    print(asyncio.get_event_loop().run_until_complete(async_imageSearch(
+        query, bool(safe), bool(validation), bool(download), float(timeout))))
+    if download == False:
+        time.sleep(9999)
+    else:
+        print(
+            f"[!] 이미지 다운로드가 ./download/{query} 폴더에 완료되었습니다.\n\n[!] Images downloaded to ./download/{query}\n\n")
+        print(
+            "[!] 프로그램이 30초 후에 자동으로 닫힙니다.\n\n[!] Program closes automatically after 30 seconds\n\n")
+        time.sleep(30)
+    # except KeyboardInterrupt:
+    #     print("\n\n[!] 프로그램이 종료되었습니다.\n\n[!] Program closed.\n\n")
+    #     time.sleep(3)
+    #     exit()
+    # except ValueError as e:
+    #     print(e)
+    #     print("\n\n[!] 잘못된 값을 입력하셨습니다.\n\n[!] You entered an invalid value.\n\n")
+    #     time.sleep(3)
+    #     exit()
+    # except Exception as e:
+    #     print(f"\n\n[!] 오류가 발생했습니다.\n\n[!] An error occurred.\n\n{e}\n\n")
+    #     time.sleep(3)
+    #     exit()
 
 
 if __name__ == "__main__":
